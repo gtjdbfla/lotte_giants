@@ -1,4 +1,5 @@
 :8090 {
+    redir /ggolde /ggolde/ 308
     # The same snapshot works at / locally and /ggolde/ behind the existing Funnel.
     handle_path /ggolde/* {
         root * /srv
