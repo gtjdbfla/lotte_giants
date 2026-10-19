@@ -1,0 +1,15 @@
+services:
+  ggolde-lab:
+    image: caddy:2-alpine
+    container_name: ggolde-lab
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8090:8090"
+    volumes:
+      - ./site:/srv:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8090/data/meta.json"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

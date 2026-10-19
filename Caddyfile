@@ -1,0 +1,19 @@
+:8090 {
+    # The same snapshot works at / locally and /ggolde/ behind the existing Funnel.
+    handle_path /ggolde/* {
+        root * /srv
+        file_server
+    }
+    handle {
+        root * /srv
+        file_server
+    }
+    encode gzip zstd
+    header {
+        X-Content-Type-Options nosniff
+        Referrer-Policy strict-origin-when-cross-origin
+        X-Frame-Options SAMEORIGIN
+        Cache-Control "no-cache"
+        Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; frame-ancestors 'self'"
+    }
+}

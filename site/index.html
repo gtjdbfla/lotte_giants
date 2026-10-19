@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#a72d3d">
+  <meta name="description" content="못한 정도 말고, 희망을 줬다 뺏은 정도. KBO 10개 구단과 롯데 선수의 과거 경기를 돌아보는 꼴데연구소">
+  <title>꼴데연구소 — 희망고문의 기록</title>
+  <link rel="icon" href="./ball.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <header class="masthead"><a class="brand" href="./"><img src="./ball.svg" width="34" height="34" alt=""><span>꼴데연구소<small>GGOLDE LAB</small></span></a><span class="edition">팬의 기억을 데이터로 복기합니다 <i>BETA 01</i></span></header>
+  <main>
+    <section class="intro"><div class="eyebrow">THE HOPE & HEARTBREAK ARCHIVE</div><h1>분명 이길 줄 알았는데</h1><p>못한 정도 말고, 희망을 줬다 뺏은 정도<br class="mobile"> 그날의 스트레스를 다시 꺼내봅니다</p></section>
+    <nav class="tabs" role="tablist" aria-label="연구 대상"><button id="teams-tab" role="tab" aria-controls="teams-panel" aria-selected="true" tabindex="0" data-tab="teams"><span>01</span> 구단별 희망고문</button><button id="players-tab" role="tab" aria-controls="players-panel" aria-selected="false" tabindex="-1" data-tab="players"><span>02</span> 롯데 선수 꼴데력</button></nav>
+    <div class="toolbar"><div><span class="live-dot"></span><span id="coverage-line">기록 불러오는 중</span></div><label>시즌 <select id="season" aria-label="시즌 선택"><option value="2025">2025 시즌</option><option value="2024">2024 시즌</option><option value="all">2024–2025 전체</option></select></label></div>
+    <div id="status" role="status" class="loading">경기 기록을 펼치고 있습니다</div>
+    <section id="teams-panel" role="tabpanel" aria-labelledby="teams-tab" hidden></section>
+    <section id="players-panel" role="tabpanel" aria-labelledby="players-tab" hidden></section>
+    <details class="research" id="methodology"><summary>이 점수는 어떻게 만들었을까 <span>산식 · 데이터 · 한계</span></summary><div id="method-content"></div></details>
+  </main>
+  <footer><span>꼴데연구소 <strong>GGOLDE LAB</strong></span><p>팬의 감정을 복기하는 비공식 연구 프로젝트<br>선수의 실력·인성·미래 성적을 평가하는 지표가 아닙니다</p><a href="https://github.com/gtjdbfla/lotte_giants" target="_blank" rel="noopener noreferrer">코드와 연구 기록 ↗</a></footer>
+  <dialog id="game-dialog" aria-labelledby="game-title"><div class="dialog-shell"><button class="close" aria-label="경기 상세 닫기">×</button><div id="game-content"></div></div></dialog>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>
