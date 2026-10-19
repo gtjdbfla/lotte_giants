@@ -5,7 +5,7 @@ import pandas as pd
 from scipy.optimize import minimize
 from scipy.special import expit
 
-VERSION = '0.1.0'
+VERSION = '0.2.0'
 TEAMS = {'LT': '롯데', 'LG': 'LG', 'HT': 'KIA', 'SS': '삼성', 'SK': 'SSG', 'OB': '두산', 'KT': 'KT', 'NC': 'NC', 'HH': '한화', 'WO': '키움'}
 EVENTS = {'single': '안타', 'double': '2루타', 'triple': '3루타', 'home_run': '홈런', 'walk': '볼넷', 'hit_by_pitch': '사구', 'strikeout': '삼진', 'field_out': '범타', 'double_play': '병살', 'triple_play': '삼중살', 'sac_bunt': '희생번트', 'sac_fly': '희생플라이', 'field_error': '실책 출루', 'fielders_choice': '야수선택', 'catcher_interference': '타격방해'}
 

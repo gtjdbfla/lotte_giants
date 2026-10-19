@@ -5,14 +5,14 @@ const pct = (v) => `${num(v * 100, 1)}%`;
 const COLORS={LT:'#a72d3d',LG:'#8f244b',HT:'#b13d39',SS:'#4166a0',SK:'#af3036',OB:'#3a4763',KT:'#353b43',NC:'#476f80',HH:'#bd672d',WO:'#6b3546'};
 const MARKS={LT:'G',LG:'LG',HT:'K',SS:'S',SK:'SSG',OB:'D',KT:'kt',NC:'NC',HH:'H',WO:'K'};
 const params = new URLSearchParams(location.search);
-const state={tab:params.get('tab')==='players'?'players':'teams',season:params.get('season')||'2025',team:params.get('team')||'LT',mode:'batting',role:'pitching',sort:'score',includeSmall:false,player:null};
+const state={tab:params.get('tab')==='players'?'players':'teams',season:params.get('season')||null,team:params.get('team')||'LT',mode:'batting',role:'pitching',sort:'score',includeSmall:false,player:null};
 const cache=new Map(); let meta, packs, gameRequest=0;
 const read = async (url) => { const r=await fetch(url); if(!r.ok) throw new Error(`자료를 불러오지 못했습니다 (${r.status})`); return r.json(); };
 const mark=(t)=>`<span class="team-mark" style="--team-color:${COLORS[t]||'#555'}">${MARKS[t]||esc(t)}</span>`;
 const name=(t)=>meta.teams[t]||t;
 const mode=()=>state.mode==='pitching'?state.role:state.mode;
-const current=()=>packs[state.season==='all'?'2025':state.season];
-const selectedGames=()=>state.season==='all'?[...packs['2024'].games,...packs['2025'].games]:current().games;
+const current=()=>packs[state.season==='all'?String(meta.defaultSeason):state.season];
+const selectedGames=()=>state.season==='all'?Object.values(packs).flatMap(p=>p.games):current().games;
 
 function updateURL(extra={}) {
   const q=new URLSearchParams({...Object.fromEntries(new URLSearchParams(location.search)),season:state.season,tab:state.tab,team:state.team,...extra});
@@ -32,7 +32,7 @@ function teamsFrom(games) {
 
 function render() {
   $('#status').hidden=true;
-  if(state.tab==='players'&&state.season==='all') state.season='2025';
+  if(state.tab==='players'&&state.season==='all') state.season=String(meta.defaultSeason);
   $('#season').value=state.season;
   $('#season option[value=all]').disabled=state.tab==='players';
   for(const tab of ['teams','players']) {
@@ -40,8 +40,8 @@ function render() {
     $(`#${tab}-tab`).tabIndex=state.tab===tab?0:-1;
     $(`#${tab}-panel`).hidden=state.tab!==tab;
   }
-  const count=state.season==='all'?1440:720;
-  $('#coverage-line').textContent=`${state.season==='all'?'2024–2025':state.season} 정규시즌 · ${num(count)}경기 검산`;
+  const count=selectedGames().length/2;
+  $('#coverage-line').textContent=`${state.season==='all'?`${Math.min(...meta.seasons)}–${Math.max(...meta.seasons)}`:state.season} 정규시즌 · ${num(count)}경기 검산`;
   if(state.tab==='teams') renderTeams(); else renderPlayers();
   updateURL();
 }
@@ -123,7 +123,7 @@ async function showGame(id,team) {
 
 function renderMethod() {
   const audits=meta.coverage.filter(c=>meta.seasons.includes(c.year));
-  $('#method-content').innerHTML=`<div class="method-grid"><article><h3>구단 점수 · 잘못한 점수가 아닙니다</h3><p>패배 경기의 후반 유리함 회수(최대 65점), 열세에서 추격한 뒤 패배(최대 25점), 6회 이후 기대승점 65%→40% 이하의 반복 회수(최대 10점)를 합칩니다. 같은 플레이를 접전·불펜·수비 점수로 반복 가산하지 않습니다.</p><p>구단 대표 점수는 패배 경기 평균에 리그 평균 10경기분을 더해 보정합니다. 경기 수와 누적 손실은 별도로 표시합니다. 경기 시작의 50%는 희망 확보로 세지 않습니다.</p></article><article><h3>선수 지수 · 기회와 역할을 구분합니다</h3><p>접전(3점 차 이내)의 상황별 기대승점 손실에 후반·희망 가중치를 적용합니다. 타격·투구는 기회당 손실을 20기회 평균으로 보정한 뒤 2024년 롯데 동일 부문의 분위로 표시합니다. 90점은 기준 선수의 약 90%보다 높은 손실이라는 뜻입니다.</p><p>수비는 상황별 공식 실책 손실 누적값을 비교합니다. 타격·투구·수비 점수는 서로 합산하지 않습니다. 선발·불펜은 실제 해당 등판의 역할입니다.</p></article><article><h3>모형과 데이터 범위</h3><p>이닝·초말·아웃·주자·점수 차로 기대승점을 추정하는 연구용 모형입니다. 공식 WPA나 실제 팬 감정의 측정값이 아닙니다. LI는 아직 구현하지 않아 LI라고 표기하지 않습니다.</p><p>2024년은 2023년으로, 2025년은 2023~2024년으로 학습했습니다. 무승부는 0.5로 보존합니다. 연장 규정별 확률 모델 분리는 후속 보완 사항입니다.</p><p>${meta.models.map(m=>`${m.season} 시간순 검증 MSE ${num(m.expectedPointsMSE,4)} (항상 50% 기준 ${num(m.constantHalfMSE,4)})`).join('<br>')}<br>타석 간 관측은 독립이 아니며 세밀한 확률 보정은 추가 검증이 필요합니다.</p></article><article><h3>검산과 제외한 기록</h3><p>${audits.map(c=>`${c.year}: ${c.games}경기 최종 점수 불일치 ${c.finalScoreMismatches}건 · 롯데 실책 ${c.fielding.observedErrors}/${c.officialLotteErrors}개 발생 확인 · 야수 책임 불명확 ${c.fielding.ambiguousErrors}개 제외`).join('<br>')}</p><p>타석 집계는 투구마다 반복된 결과를 한 번만 셉니다. 타석 중 주루·실책은 타석 기여에 섞일 수 있고, 수비는 실책 순간의 변화만 측정해 정상 처리 시의 가상 아웃 손실까지 포함하지 않습니다.</p><p>자료 버전 ${esc(meta.version)} · 빌드 ${esc(meta.builtAt.slice(0,10))}<br>정규시즌만 포함 · 2023년은 학습용이며 순위에 노출하지 않습니다.</p></article><article style="grid-column:1/-1"><h3>출처와 재현</h3><p>${meta.sources.map(s=>`<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.name)} ↗</a> · ${esc(s.use)}${s.license?' · '+esc(s.license):''}`).join('<br>')}</p><p>투구별 공개 자료를 재집계하고 박스스코어·실책 이닝을 추가 대조했습니다. 원문 중계 문구는 공개하지 않습니다. 고정된 원천 revision과 계산 코드는 GitHub에서 확인할 수 있습니다.</p></article></div>`;
+  $('#method-content').innerHTML=`<div class="method-grid"><article><h3>구단 점수 · 잘못한 점수가 아닙니다</h3><p>패배 경기의 후반 유리함 회수(최대 65점), 열세에서 추격한 뒤 패배(최대 25점), 6회 이후 기대승점 65%→40% 이하의 반복 회수(최대 10점)를 합칩니다. 같은 플레이를 접전·불펜·수비 점수로 반복 가산하지 않습니다.</p><p>구단 대표 점수는 패배 경기 평균에 리그 평균 10경기분을 더해 보정합니다. 경기 수와 누적 손실은 별도로 표시합니다. 경기 시작의 50%는 희망 확보로 세지 않습니다.</p></article><article><h3>선수 지수 · 기회와 역할을 구분합니다</h3><p>접전(3점 차 이내)의 상황별 기대승점 손실에 후반·희망 가중치를 적용합니다. 타격·투구는 기회당 손실을 20기회 평균으로 보정한 뒤 2024년 롯데 동일 부문의 분위로 표시합니다. 90점은 기준 선수의 약 90%보다 높은 손실이라는 뜻입니다.</p><p>수비는 상황별 공식 실책 손실 누적값을 비교합니다. 타격·투구·수비 점수는 서로 합산하지 않습니다. 선발·불펜은 실제 해당 등판의 역할입니다.</p></article><article><h3>모형과 데이터 범위</h3><p>이닝·초말·아웃·주자·점수 차로 기대승점을 추정하는 연구용 모형입니다. 공식 WPA나 실제 팬 감정의 측정값이 아닙니다. LI는 아직 구현하지 않아 LI라고 표기하지 않습니다.</p><p>${meta.models.map(m=>`${m.season}년: ${m.trainedOn.join('·')}년 자료로 학습`).join('<br>')}. 무승부는 0.5로 보존합니다. 연장 규정별 확률 모델 분리는 후속 보완 사항입니다.</p><p>${meta.models.map(m=>`${m.season} 시간순 검증 MSE ${num(m.expectedPointsMSE,4)} (항상 50% 기준 ${num(m.constantHalfMSE,4)})`).join('<br>')}<br>타석 간 관측은 독립이 아니며 세밀한 확률 보정은 추가 검증이 필요합니다.</p></article><article><h3>검산과 제외한 기록</h3><p>${audits.map(c=>`${c.year}: ${c.games}경기 최종 점수 불일치 ${c.finalScoreMismatches}건 · 롯데 실책 ${c.fielding.observedErrors}/${c.officialLotteErrors}개 발생 확인 · 야수 책임 불명확 ${c.fielding.ambiguousErrors}개 제외`).join('<br>')}</p><p>타석 집계는 투구마다 반복된 결과를 한 번만 셉니다. 타석 중 주루·실책은 타석 기여에 섞일 수 있고, 수비는 실책 순간의 변화만 측정해 정상 처리 시의 가상 아웃 손실까지 포함하지 않습니다.</p><p>자료 버전 ${esc(meta.version)} · 빌드 ${esc(meta.builtAt.slice(0,10))}<br>정규시즌만 포함 · 2023년은 학습용이며 순위에 노출하지 않습니다.</p></article><article style="grid-column:1/-1"><h3>출처와 재현</h3><p><a href="https://github.com/gtjdbfla/lotte_giants/blob/main/docs/DATA_AND_METHOD.md" target="_blank" rel="noopener noreferrer">어떤 데이터로, 어떻게 만들었나 ↗</a></p><p>${meta.sources.map(s=>`<a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.name)} ↗</a> · ${esc(s.use)}${s.license?' · '+esc(s.license):''}`).join('<br>')}</p><p>투구별 공개 자료를 재집계하고 박스스코어·실책 이닝을 추가 대조했습니다. 2026년은 공개 파일 470경기에 문자중계에서 보충한 250경기를 합쳤습니다. 원문 중계 문구는 공개하지 않습니다. 고정된 원천 revision과 계산 코드는 GitHub에서 확인할 수 있습니다.</p></article></div>`;
 }
 
 document.querySelectorAll('[data-tab]').forEach(b=>b.addEventListener('click',()=>{state.tab=b.dataset.tab;render();}));
@@ -136,9 +136,10 @@ $('#game-dialog').addEventListener('close',()=>{gameRequest++;updateURL({game:''
 try {
   meta=await read('./data/meta.json');
   packs=Object.fromEntries(await Promise.all(meta.seasons.map(async y=>[String(y),await read(`./data/${y}.json`)])));
-  if(!['2024','2025','all'].includes(state.season))state.season='2025';
+  if(![...meta.seasons.map(String),'all'].includes(state.season))state.season=String(meta.defaultSeason);
+  $('#season').innerHTML=[...meta.seasons].sort((a,b)=>b-a).map(y=>`<option value="${y}">${y} 시즌</option>`).join('')+`<option value="all">${Math.min(...meta.seasons)}–${Math.max(...meta.seasons)} 전체</option>`;
   if(!meta.teams[state.team])state.team='LT';
   renderMethod();render();
   const initialGame=params.get('game');
-  if(initialGame&&/^202[45]\d{4}[A-Z]{4}[012]202[45]$/.test(initialGame))showGame(initialGame,state.team);
+  if(initialGame&&/^\d{8}[A-Z]{4}[012]\d{4}$/.test(initialGame)&&meta.seasons.includes(Number(initialGame.slice(0,4)))&&initialGame.slice(0,4)===initialGame.slice(-4))showGame(initialGame,state.team);
 }catch(e){$('#status').innerHTML=`기록을 불러오지 못했어요<br><span class="tiny">${esc(e.message)}</span><br><button id="retry">다시 불러오기</button>`;$('#retry').addEventListener('click',()=>location.reload());}

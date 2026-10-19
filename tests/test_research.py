@@ -82,6 +82,21 @@ class SnapshotAuditTests(unittest.TestCase):
             players=pack['players']
             self.assertEqual(sum(p['appearances'] for p in players['pitching']),sum(p['appearances'] for p in players['starter'])+sum(p['appearances'] for p in players['reliever']))
 
+    def test_2026_has_completed_provenance_and_earlier_training_only(self):
+        self.assertIn(2026, self.meta['seasons'])
+        self.assertEqual(self.meta['defaultSeason'], 2026)
+        completion = self.meta['completion2026']
+        self.assertEqual(completion['seedGames'] + completion['supplementGames'], 720)
+        self.assertEqual(completion['seedGames'], 470)
+        self.assertEqual(completion['supplementGames'], 250)
+        self.assertEqual(len(completion['sha256']), 64)
+        pack = json.loads((ROOT/'site/data/2026.json').read_text('utf-8'))
+        self.assertEqual(pack['model']['trainedOn'], [2023, 2024, 2025])
+        self.assertEqual(pack['coverage']['officialLotteErrors'], 107)
+        self.assertEqual(pack['coverage']['lastDate'], '2026-10-12')
+        for role in ['batting', 'fielding', 'pitching', 'starter', 'reliever']:
+            self.assertGreater(len(pack['players'][role]), 0)
+
 
 if __name__ == '__main__':
     unittest.main()

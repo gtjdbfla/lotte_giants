@@ -8,6 +8,7 @@ import re
 import time
 import urllib.error
 import urllib.request
+import uuid
 from pathlib import Path
 
 import pandas as pd
@@ -38,7 +39,7 @@ def fetch(path: str, cache: Path) -> dict:
                 raise
             time.sleep(1 + attempt)
     cache.parent.mkdir(parents=True, exist_ok=True)
-    temp = cache.with_suffix('.tmp')
+    temp = cache.with_name(cache.name + '.' + uuid.uuid4().hex + '.tmp')
     with gzip.open(temp, 'wt', encoding='utf-8') as f:
         json.dump(body, f, ensure_ascii=False)
     temp.replace(cache)
@@ -83,9 +84,15 @@ def one_game(gid: str) -> dict:
 def main() -> None:
     out = CACHE / 'lotte_records.json'
     results = {}
-    for year in (2023, 2024, 2025):
-        df = pd.read_parquet(ROOT / 'data' / 'raw' / f'pbp_{year}.parquet', columns=['game_pk', 'home_team', 'away_team'])
-        gids = df.loc[df.home_team.eq('LT') | df.away_team.eq('LT'), 'game_pk'].unique().tolist()
+    for year in (2023, 2024, 2025, 2026):
+        pbp_path = ROOT / 'data' / 'raw' / f'pbp_{year}.parquet'
+        if pbp_path.exists():
+            df = pd.read_parquet(pbp_path, columns=['game_pk', 'home_team', 'away_team'])
+            gids = df.loc[df.home_team.eq('LT') | df.away_team.eq('LT'), 'game_pk'].unique().tolist()
+        else:
+            # Boxscore audit can run while missing pitch files are being completed.
+            games = json.loads((ROOT / 'data/raw' / f'results_{year}.json').read_text('utf-8'))
+            gids = [g['gamePk'] + str(year) for g in games if g['status']['detailedState'] == 'Final' and any(g['teams'][s]['team']['abbrev'] == 'LOT' for s in ('home', 'away'))]
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as pool:
             future_map = {pool.submit(one_game, gid): gid for gid in gids}
             for ix, f in enumerate(concurrent.futures.as_completed(future_map), 1):

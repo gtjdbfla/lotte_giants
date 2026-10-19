@@ -17,7 +17,7 @@ sys.path.insert(0, str(ROOT))
 from ggolde.engine import EVENTS, TEAMS, VERSION, WinExpectancy, event_context, game_stress, season_summary
 
 OUT = ROOT / 'site' / 'data'
-OFFICIAL_ERRORS = {2023: 103, 2024: 123, 2025: 111}
+OFFICIAL_ERRORS = {2023: 103, 2024: 123, 2025: 111, 2026: 107}
 
 
 def dump(path: Path, value) -> None:
@@ -223,13 +223,13 @@ def main() -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     records = json.loads((ROOT / 'data/cache/lotte_records.json').read_text('utf-8'))
     raw_years, coverage = {}, []
-    for year in (2023, 2024, 2025):
+    for year in (2023, 2024, 2025, 2026):
         pa, report = load_year(year)
         raw_years[year] = pa
         coverage.append(report)
     packs = {}
     diagnostics = []
-    for year in (2024, 2025):
+    for year in (2024, 2025, 2026):
         training_years = [y for y in raw_years if y < year]
         model = WinExpectancy().fit(pd.concat([raw_years[y] for y in training_years], ignore_index=True))
         pa = model.apply(raw_years[year])
@@ -263,7 +263,7 @@ def main() -> None:
             pack['players'][mode] = sorted(players, key=lambda p: (p['eligible'], p['score'], p['total']), reverse=True)
         dump(OUT / f'{year}.json', pack)
     manifest = json.loads((ROOT / 'data/raw/manifest.json').read_text('utf-8'))
-    meta = {'version': VERSION, 'builtAt': datetime.now(timezone.utc).isoformat(), 'seasons': list(packs), 'defaultSeason': 2025, 'trainingSeasons': [2023], 'teams': TEAMS, 'coverage': coverage, 'models': diagnostics, 'sourceRevision': manifest['pbp_revision'], 'sources': [{'name': 'KBO Play-by-Play · slothman3878', 'url': 'https://huggingface.co/datasets/slothman3878/kbo_playbyplay', 'license': 'CC BY 4.0', 'use': '투구별 파생 자료를 타석별로 재집계'}, {'name': 'KBO Data Pipeline · dentearl', 'url': 'https://github.com/dentearl/kbo-data', 'use': '최종 점수 교차 대조'}, {'name': 'NAVER Sports', 'url': 'https://m.sports.naver.com/kbaseball', 'use': '롯데 경기 박스스코어·실책 이닝 대조'}, {'name': 'KBO 팀 수비 기록', 'url': 'https://www.koreabaseball.com/Record/Team/Defense/Basic.aspx', 'use': '롯데 시즌 실책 합계 대조'}]}
+    meta = {'version': VERSION, 'builtAt': datetime.now(timezone.utc).isoformat(), 'seasons': list(packs), 'defaultSeason': 2026, 'trainingSeasons': [2023], 'teams': TEAMS, 'coverage': coverage, 'models': diagnostics, 'sourceRevision': manifest['pbp_revision'], 'completion2026': manifest['files'].get('pbp_2026.parquet'), 'sources': [{'name': 'KBO Play-by-Play · slothman3878', 'url': 'https://huggingface.co/datasets/slothman3878/kbo_playbyplay', 'license': 'CC BY 4.0', 'use': '투구별 파생 자료를 타석별로 재집계'}, {'name': 'KBO Data Pipeline · dentearl', 'url': 'https://github.com/dentearl/kbo-data', 'use': '최종 점수 교차 대조'}, {'name': 'NAVER Sports', 'url': 'https://m.sports.naver.com/kbaseball', 'use': '2026 누락 250경기 중계 보충 및 롯데 박스스코어·실책 대조'}, {'name': 'KBO 팀 수비 기록', 'url': 'https://www.koreabaseball.com/Record/Team/Defense/Basic.aspx', 'use': '롯데 시즌 실책 합계 대조'}]}
     dump(OUT / 'meta.json', meta)
     dump(ROOT / 'artifacts/coverage.json', {'coverage': coverage, 'models': diagnostics, 'sources': manifest})
     for y, pack in packs.items():

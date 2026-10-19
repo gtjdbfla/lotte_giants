@@ -27,9 +27,10 @@ def main() -> None:
     result_rev = manifest.get('results_revision') or json.loads(get('https://api.github.com/repos/dentearl/kbo-data/commits/main'))['sha']
     manifest.update({'pbp_revision': HF_REV, 'results_revision': result_rev})
     files = manifest.setdefault('files', {})
-    for year in (2023, 2024, 2025):
+    for year in (2023, 2024, 2025, 2026):
+        pbp_name = f'pbp_{year}.parquet' if year < 2026 else 'pbp_2026_seed.parquet'
         sources = {
-            f'pbp_{year}.parquet': f'https://huggingface.co/datasets/slothman3878/kbo_playbyplay/resolve/{HF_REV}/v0/kbo_pbp_{year}.parquet',
+            pbp_name: f'https://huggingface.co/datasets/slothman3878/kbo_playbyplay/resolve/{HF_REV}/v0/kbo_pbp_{year}.parquet',
             f'results_{year}.json': f'https://raw.githubusercontent.com/dentearl/kbo-data/{result_rev}/data/kbo/{year}.json',
         }
         for name, url in sources.items():
